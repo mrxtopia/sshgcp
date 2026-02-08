@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Cloud Run defines the PORT environment variable
+PORT=${PORT:-8080}
+
 # Create user mrxtopia with password mrxtopia
 USER_NAME="mrxtopia"
 USER_PASS="mrxtopia"
@@ -12,9 +15,10 @@ if ! id "$USER_NAME" &>/dev/null; then
     echo "User $USER_NAME created."
 fi
 
-# Generate host keys if not present
+# Generate host keys if not present (for sshd if needed locally)
 ssh-keygen -A
 
-# Start SSH server in foreground
-echo "Starting SSH server..."
-exec /usr/sbin/sshd -D -e
+# Start ttyd to provide a web terminal
+# It will run the 'login' command to prompt for username/password
+echo "Starting Web Terminal on port $PORT..."
+exec /usr/local/bin/ttyd -p $PORT login

@@ -2,39 +2,29 @@
 
 # Configuration
 PROJECT_ID=$(gcloud config get-value project)
-INSTANCE_NAME="ssh-server-instance"
-ZONE="us-central1-a"
-IMAGE_NAME="ssh-server"
+SERVICE_NAME="web-ssh-service"
+REGION="us-central1"
+IMAGE_NAME="web-ssh"
 REPOSITORY="my-repo" # Assumes artifact registry repo is created
-LOCATION="us-central1"
 
 echo "Using Project ID: $PROJECT_ID"
 
-# 1. Build and Push (Optional if using Container-Optimized OS)
-# However, usually for GCP we push to Artifact Registry
+# 1. Build the image
 echo "Building Docker image..."
-docker build -t $IMAGE_NAME .
+IMAGE_TAG="$REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE_NAME"
+docker build -t $IMAGE_TAG .
 
-# 2. Tag and Push (Requires Artifact Registry)
-# gcloud artifacts repositories create $REPOSITORY --repository-format=docker --location=$LOCATION
-# docker tag $IMAGE_NAME $LOCATION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE_NAME
-# docker push $LOCATION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE_NAME
+# 2. Push to Artifact Registry
+echo "Pushing image..."
+docker push $IMAGE_TAG
 
-# 3. Create GCE Instance with the container
-# This uses the Container-Optimized OS and runs the docker image directly
-echo "Creating GCE Instance..."
-gcloud compute instances create-with-container $INSTANCE_NAME \
-    --container-image=$LOCATION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE_NAME \
-    --zone=$ZONE \
-    --machine-type=e2-micro \
-    --tags=allow-ssh-port \
-    --container-restart-policy=always
+# 3. Deploy to Cloud Run
+echo "Deploying to Cloud Run..."
+gcloud run deploy $SERVICE_NAME \
+    --image $IMAGE_TAG \
+    --platform managed \
+    --region $REGION \
+    --allow-unauthenticated \
+    --port 8080
 
-# 4. Create Firewall rule
-echo "Creating Firewall rule..."
-gcloud compute firewall-rules create allow-ssh-22 \
-    --allow tcp:22 \
-    --target-tags=allow-ssh-port \
-    --description="Allow SSH traffic on port 22"
-
-echo "Deployment finished. You can connect using: ssh mrxtopia@<INSTANCE_EXTERNAL_IP>"
+echo "Deployment finished. Access your Web SSH at the URL above."
