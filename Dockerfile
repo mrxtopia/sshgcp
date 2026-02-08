@@ -1,21 +1,26 @@
-FROM alpine:latest
-EXPOSE 8080
-WORKDIR /app
+FROM ubuntu:latest
 
-# Install dependencies and fix line endings
-RUN apk add --no-cache ca-certificates libc6-compat sed
+# Avoid prompts from apt
+ENV DEBIAN_FRONTEND=noninteractive
 
-# Download and install V2Ray
-RUN wget https://github.com/v2fly/v2ray-core/releases/latest/download/v2ray-linux-64.zip \
-    && unzip v2ray-linux-64.zip \
-    && rm v2ray-linux-64.zip \
-    && rm config.json
+# Install openssh-server and other utilities
+RUN apt-get update && apt-get install -y \
+    openssh-server \
+    sudo \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY config.json /app
-COPY entrypoint.sh /app
+# Set up SSH directory
+RUN mkdir /var/run/sshd
 
-# Ensure line endings are LF (to prevent "not found" errors on Windows-to-Linux transfers)
-RUN sed -i 's/\r$//' /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
+# Configure SSH
+# Allow password authentication
+RUN sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+RUN sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
 
-ENTRYPOINT ["/app/entrypoint.sh"]
+# Exposure SSH port
+EXPOSE 22
+
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

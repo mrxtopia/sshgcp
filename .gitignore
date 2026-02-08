@@ -1,12 +1,11 @@
-# Binaries and executables
+# Binaries
 *.exe
-*.apkm
 *.zip
+*.apkm
 
 # OS files
-Thumbs.db
 .DS_Store
+Thumbs.db
 
-# Virtual environment (if any)
-venv/
-.env
+# Misc
+*.log

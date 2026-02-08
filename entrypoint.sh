@@ -1,13 +1,20 @@
-#!/bin/sh
-set -e
+#!/bin/bash
 
-echo "--- V2Ray Starting ---"
+# Create user mrxtopia with password mrxtopia
+USER_NAME="mrxtopia"
+USER_PASS="mrxtopia"
 
-V_PORT=${PORT:-8080}
-echo "Listening on Port: $V_PORT"
+# Check if user already exists
+if ! id "$USER_NAME" &>/dev/null; then
+    useradd -m -s /bin/bash "$USER_NAME"
+    echo "$USER_NAME:$USER_PASS" | chpasswd
+    usermod -aG sudo "$USER_NAME"
+    echo "User $USER_NAME created."
+fi
 
-# Replace the port placeholder in the config
-sed -i "s/PORT_PLACEHOLDER/$V_PORT/g" /app/config.json
+# Generate host keys if not present
+ssh-keygen -A
 
-echo "--- V2Ray Binary Start ---"
-exec ./v2ray run -config /app/config.json
+# Start SSH server in foreground
+echo "Starting SSH server..."
+exec /usr/sbin/sshd -D -e
